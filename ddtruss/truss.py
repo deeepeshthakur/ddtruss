@@ -46,12 +46,12 @@ class Truss:
 
         Args
         ----
-        A : float
+        A : float or ndarray, shape (n_lines, )
             Cross section area
         E : float
             Young's modulus
         U_dict : dict
-            Prescribed displacement ``{point_id: (Ux, Uy), ...}``
+            Prescribed displacement ``{point_id: (Ux, Uy), ...}``, use ``None`` for ``Ux`` or ``Uy`` when this component is not concerned
         F_dict : dict
             Prescribed nodal force ``{point_id: (Fx, Fy), ...}``
         sig0 : ndarray, shape (n_lines, )
@@ -69,7 +69,13 @@ class Truss:
             Stress
         """
         # Geometric and material properties
-        self.A = A
+        try:
+            assert len(A) == self.n_lines
+            self.A = A
+        except TypeError:
+            self.A = A * np.ones(self.n_lines)
+        except AssertionError:
+            raise RuntimeError("Length of A must match the number of bars")
         self.E = E
 
         # Stiffness matrix and LU factorization
@@ -110,26 +116,31 @@ class Truss:
             global_indices = np.hstack(
                 [self._global_ddl_indices(line[0]), self._global_ddl_indices(line[1])]
             )
-            Ke = self.A * self.E * np.outer(self.B[i], self.B[i]) * self.L[i]
+            Ke = self.A[i] * self.E * np.outer(self.B[i], self.B[i]) * self.L[i]
             self.K[global_indices[:, np.newaxis], global_indices] += Ke
 
     def _apply_Dirichlet(self, U_dict={}, K=None, F=None):
-        for point_id, _ in U_dict.items():
-            global_indices = self._global_ddl_indices(point_id)
+        for point_id, U in U_dict.items():
+            assert len(U) == 2
+            idx = [i for i in range(len(U)) if U[i] is not None]
+            if len(idx) == 0:
+                continue
+            U = np.asarray(U)[idx]
+            global_indices = self._global_ddl_indices(point_id)[idx]
             if K is not None:
                 K[global_indices, :] = 0
-                K[:, global_indices] = 0
-                K[global_indices[:, np.newaxis], global_indices] = np.eye(2)
+                K[global_indices[:, np.newaxis], global_indices] = np.eye(len(idx))
             if F is not None:
-                F[global_indices] = 0
+                F[global_indices] = U
 
     def _apply_force(self, F_dict={}, sig0=None):
         self.F = np.zeros(self.n_ddl)
 
         # Prescribed nodal forces
-        for point_id, force in F_dict.items():
+        for point_id, F in F_dict.items():
+            assert len(F) == 2
             global_indices = self._global_ddl_indices(point_id)
-            self.F[global_indices] += force
+            self.F[global_indices] += F
 
         # Initial stress
         if sig0 is not None:
@@ -142,7 +153,7 @@ class Truss:
                         self._global_ddl_indices(line[1]),
                     ]
                 )
-                Fe = -self.A * sig0[i] * self.B[i] * self.L[i]
+                Fe = -self.A[i] * sig0[i] * self.B[i] * self.L[i]
                 self.F[global_indices] += Fe
 
     def _strain(self, u):
