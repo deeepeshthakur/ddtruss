@@ -7,9 +7,7 @@
 
 This repository provides a Python implementation of the data-driven solver for truss structures described in [Kirchdoerfer, T., & Ortiz, M. (2016). Data-driven computational mechanics. Computer Methods in Applied Mechanics and Engineering, 304, 81-101](https://www.sciencedirect.com/science/article/pii/S0045782516300238).
 
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/4027283/63096980-9561cb00-bf6f-11e9-88a7-d07081138f19.png" width="800">
-</p>
+![](https://user-images.githubusercontent.com/4027283/63096980-9561cb00-bf6f-11e9-88a7-d07081138f19.png)
 
 Some notebook examples can be found in `examples`.
 

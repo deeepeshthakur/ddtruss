@@ -1,0 +1,14 @@
+language: python
+
+python:
+  - "3.6"
+
+install:
+  - pip3 install .
+
+script:
+  - cd test
+  - pytest --cov ddtruss
+
+after_success:
+  - codecov

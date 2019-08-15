@@ -36,7 +36,7 @@ class DataDrivenSolver:
 
         Args
         ----
-        A : float
+        A : float or ndarray, shape (n_lines, )
             Cross section area
         U_dict : dict
             Prescribed displacement ``{point_id: (Ux, Uy), ...}``
