@@ -85,12 +85,12 @@ class Truss:
             self._compute_elementary_quantities()
             self._construct_K()
 
-        # Apply Dirichlet conditions to K
-        if len(U_dict) > 0:
-            self.K_Dirichlet = self.K.copy()
-            self._apply_Dirichlet(U_dict, K=self.K_Dirichlet)
-        else:
-            self.K_Dirichlet = self.K
+            # Apply Dirichlet conditions to K
+            if len(U_dict) > 0:
+                self.K_Dirichlet = self.K.copy()
+                self._apply_Dirichlet(U_dict, K=self.K_Dirichlet)
+            else:
+                self.K_Dirichlet = self.K
 
         # LU factorization
         if self.K_lu is None or construct_K:
@@ -112,7 +112,6 @@ class Truss:
         if self.B is None:
             self.L = np.zeros(self.n_lines)
             self.B = np.zeros((self.n_lines, 4))
-
             for i, line in enumerate(self.lines):
                 coords = self.points[line]
                 x, y = coords[:, 0], coords[:, 1]

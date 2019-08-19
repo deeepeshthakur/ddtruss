@@ -78,8 +78,12 @@ class DataDrivenSolver:
         while len(f_obj_iter) <= n_iterations:
             # Solve the 1st problem for u driven by initial stress
             sig0 = -E_num * eps_sig_[:, 0]
+            if len(f_obj_iter) == 0:
+                construct_K = True
+            else:
+                construct_K = False
             u, eps, _ = self.truss.solve(
-                A=A, E=E_num, U_dict=U_dict, sig0=sig0
+                A=A, E=E_num, U_dict=U_dict, sig0=sig0, construct_K=construct_K
             )
 
             # Solve the 2nd problem for eta driven by initial stress and applied force
