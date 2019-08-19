@@ -26,8 +26,8 @@ class Truss:
         # Solving
         self.B = None  # gradient matrix
         self.K = None
-        self.F = None
         self.K_lu = None
+        self.F = None
 
     def integrate(self, fun):
         """
@@ -40,7 +40,9 @@ class Truss:
         """
         return np.sum(self.A * self.L * fun, axis=0)
 
-    def solve(self, A=1, E=1, U_dict={}, F_dict={}, sig0=None, refactor_K=True):
+    def solve(
+        self, A=1, E=1, U_dict={}, F_dict={}, sig0=None, construct_K=False
+    ):
         """
         Solve the static equilibrium problem for the truss structure
 
@@ -56,8 +58,8 @@ class Truss:
             Prescribed nodal force ``{point_id: (Fx, Fy), ...}``
         sig0 : ndarray, shape (n_lines, )
             Initial stress
-        refactor_K : bool
-            Whether force reconstructing and performing LU factorization for the stiffness matrix
+        construct_K : bool
+            Whether force reconstructing and performing LU factorization of the stiffness matrix
 
         Returns
         -------
@@ -78,15 +80,24 @@ class Truss:
             raise RuntimeError("Length of A must match the number of bars")
         self.E = E
 
-        # Stiffness matrix and LU factorization
-        if self.K_lu is None or refactor_K:
+        # Stiffness matrix
+        if self.K is None or construct_K:
             self._compute_elementary_quantities()
             self._construct_K()
-            self._apply_Dirichlet(U_dict, K=self.K)
-            self.K_lu, self.K_piv = lu_factor(self.K, check_finite=False)
+
+        # Apply Dirichlet conditions to K
+        if len(U_dict) > 0:
+            self.K_Dirichlet = self.K.copy()
+            self._apply_Dirichlet(U_dict, K=self.K_Dirichlet)
+        else:
+            self.K_Dirichlet = self.K
+
+        # LU factorization
+        if self.K_lu is None or construct_K:
+            self.K_lu, self.K_piv = lu_factor(self.K_Dirichlet, check_finite=False)
 
         # Right hand side
-        self._apply_force(F_dict, sig0)
+        self._construct_F(F_dict, sig0)
         self._apply_Dirichlet(U_dict, F=self.F)
 
         # Solve and post-processing
@@ -133,7 +144,7 @@ class Truss:
             if F is not None:
                 F[global_indices] = U
 
-    def _apply_force(self, F_dict={}, sig0=None):
+    def _construct_F(self, F_dict={}, sig0=None):
         self.F = np.zeros(self.n_ddl)
 
         # Prescribed nodal forces
